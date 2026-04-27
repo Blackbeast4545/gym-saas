@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "769646267548",
+    "project_id": "gym-saas-17c80",
+    "storage_bucket": "gym-saas-17c80.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769646267548:android:8ce7f0b24034f9b9387159",
+        "android_client_info": {
+          "package_name": "com.gymsaas.member"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmSGfFf_LsbBeNIlkgWSRqadOO8__Cu7E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

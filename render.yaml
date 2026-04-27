@@ -1,0 +1,52 @@
+services:
+  # ── FastAPI Backend ─────────────────────────────────────────────
+  - type: web
+    name: fitnexus-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # set manually in Render dashboard
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates a secure value
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false
+      - key: TWO_FACTOR_API_KEY
+        sync: false
+      - key: TWO_FACTOR_SENDER_ID
+        value: GYMSAS
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-credentials.json
+      - key: APP_NAME
+        value: FitNexus
+      - key: APP_VERSION
+        value: "1.0.0"
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_ORIGINS
+        sync: false          # set to your Vercel domain
+
+  # ── Scheduler (daily expiry + notifications) ─────────────────────
+  - type: worker
+    name: fitnexus-scheduler
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    startCommand: python -m app.services.scheduler
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: TWO_FACTOR_API_KEY
+        sync: false
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-credentials.json
+      - key: DEBUG
+        value: "false"

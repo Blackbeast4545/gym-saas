@@ -1,0 +1,199 @@
+name: Build Flutter APK
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+
+      - name: Create fresh Flutter project
+        run: |
+          flutter create --project-name fitnexus_member --org com.fitnexus /tmp/fresh_app
+
+      - name: Copy lib folder
+        run: |
+          cp -r flutter_app/lib /tmp/fresh_app/
+
+      - name: Create asset folders
+        run: |
+          mkdir -p /tmp/fresh_app/assets/images
+          mkdir -p /tmp/fresh_app/assets/animations
+          mkdir -p /tmp/fresh_app/assets/fonts
+
+      - name: Write pubspec without Firebase
+        run: |
+          cat > /tmp/fresh_app/pubspec.yaml << 'EOF'
+          name: fitnexus_member
+          description: FitNexus Member App
+          publish_to: none
+          version: 1.0.0+1
+
+          environment:
+            sdk: ">=3.0.0 <4.0.0"
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            provider: ^6.1.2
+            dio: ^5.4.3
+            pretty_dio_logger: ^1.3.1
+            flutter_secure_storage: ^9.0.0
+            shared_preferences: ^2.2.3
+            mobile_scanner: ^4.0.1
+            google_fonts: ^6.2.0
+            flutter_svg: ^2.0.10+1
+            cached_network_image: ^3.3.1
+            shimmer: ^3.0.0
+            lottie: ^3.1.0
+            fl_chart: ^0.68.0
+            table_calendar: ^3.1.2
+            intl: ^0.19.0
+            url_launcher: ^6.3.0
+            package_info_plus: ^8.0.0
+            connectivity_plus: ^6.0.3
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^3.0.0
+
+          flutter:
+            uses-material-design: true
+          EOF
+
+      - name: Write main.dart without Firebase
+        run: |
+          cat > /tmp/fresh_app/lib/main.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          import 'package:provider/provider.dart';
+          import 'services/auth_provider.dart';
+          import 'services/api_service.dart';
+          import 'screens/auth/splash_screen.dart';
+          import 'screens/auth/login_screen.dart';
+          import 'screens/dashboard/main_nav.dart';
+          import 'utils/constants.dart';
+
+          void main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            apiService.init();
+            runApp(
+              ChangeNotifierProvider(
+                create: (_) => AuthProvider(),
+                child: const GymSaasApp(),
+              ),
+            );
+          }
+
+          class GymSaasApp extends StatelessWidget {
+            const GymSaasApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                title: AppConstants.appName,
+                debugShowCheckedModeBanner: false,
+                theme: appTheme(),
+                home: const SplashScreen(),
+                routes: {
+                  '/login': (_) => const LoginScreen(),
+                  '/home': (_) => const MainNav(),
+                },
+              );
+            }
+          }
+          EOF
+
+      - name: Write main_nav without Firebase
+        run: |
+          cat > /tmp/fresh_app/lib/screens/dashboard/main_nav.dart << 'EOF'
+          import 'package:flutter/material.dart';
+          import '../../utils/constants.dart';
+          import '../dashboard/dashboard_screen.dart';
+          import '../workout/workout_screen.dart';
+          import '../attendance/attendance_screen.dart';
+          import '../payments/payments_screen.dart';
+          import '../diet/diet_screen.dart';
+
+          class MainNav extends StatefulWidget {
+            const MainNav({super.key});
+
+            @override
+            State<MainNav> createState() => _MainNavState();
+          }
+
+          class _MainNavState extends State<MainNav> {
+            int _selectedIndex = 0;
+
+            final List<Widget> _screens = const [
+              DashboardScreen(),
+              WorkoutScreen(),
+              AttendanceScreen(),
+              PaymentsScreen(),
+              DietScreen(),
+            ];
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: IndexedStack(index: _selectedIndex, children: _screens),
+                bottomNavigationBar: NavigationBar(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (i) =>
+                      setState(() => _selectedIndex = i),
+                  backgroundColor: AppColors.surface,
+                  elevation: 0,
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: 'Home',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.fitness_center_outlined),
+                      selectedIcon: Icon(Icons.fitness_center_rounded),
+                      label: 'Workout',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.qr_code_scanner_outlined),
+                      selectedIcon: Icon(Icons.qr_code_scanner_rounded),
+                      label: 'Check In',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.receipt_long_outlined),
+                      selectedIcon: Icon(Icons.receipt_long_rounded),
+                      label: 'Payments',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.restaurant_menu_outlined),
+                      selectedIcon: Icon(Icons.restaurant_menu_rounded),
+                      label: 'Diet',
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+          EOF
+
+      - name: Get dependencies
+        run: cd /tmp/fresh_app && flutter pub get
+
+      - name: Build APK
+        run: cd /tmp/fresh_app && flutter build apk --debug --no-tree-shake-icons
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-no-firebase
+          path: /tmp/fresh_app/build/app/outputs/flutter-apk/app-debug.apk
