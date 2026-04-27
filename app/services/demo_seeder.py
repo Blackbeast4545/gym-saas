@@ -178,18 +178,18 @@ def seed_demo_gym(db: Session):
 
     # ── 4. MEMBERSHIP PLANS ──
     plans_data = [
-        ("Monthly", 1, 999), ("Quarterly", 3, 2499),
-        ("Half Yearly", 6, 4499), ("Annual", 12, 7999),
+        ("Monthly", 30, 999), ("Quarterly", 90, 2499),
+        ("Half Yearly", 180, 4499), ("Annual", 365, 7999),
     ]
     mplans = []
-    for name, months, price in plans_data:
+    for name, days, price in plans_data:
         mp = MembershipPlan(
-            gym_id=gym_id, name=name, duration_months=months,
+            gym_id=gym_id, name=name, duration_days=days,
             price=price, is_active=True,
         )
         db.add(mp)
         db.flush()
-        mplans.append(mp)
+        mplans.append((mp, days))
     logger.info(f"[DEMO] {len(mplans)} membership plans")
 
     # ── 5. MEMBERS ──
@@ -197,8 +197,8 @@ def seed_demo_gym(db: Session):
     for i, (name, phone, gender) in enumerate(MEMBER_NAMES):
         join_days_ago = random.randint(30, 365)
         join_date = today - timedelta(days=join_days_ago)
-        plan = random.choice(mplans)
-        expiry = join_date + timedelta(days=plan.duration_months * 30)
+        plan, plan_days = random.choice(mplans)
+        expiry = join_date + timedelta(days=plan_days)
         if i >= 12:
             expiry = today - timedelta(days=random.randint(1, 30))
 
@@ -217,7 +217,7 @@ def seed_demo_gym(db: Session):
     # ── 6. PAYMENTS ──
     receipt_counter = 1000
     for m in members:
-        plan = random.choice(mplans)
+        plan, _ = random.choice(mplans)
         mode = random.choice([PaymentMode.cash, PaymentMode.upi])
         receipt_counter += 1
         p = Payment(
